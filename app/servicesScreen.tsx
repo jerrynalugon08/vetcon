@@ -1,19 +1,47 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import {
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Calendar } from "react-native-calendars";
 
 export default function ServicesScreen() {
   const router = useRouter();
   const { category } = useLocalSearchParams();
+  const [selectedDate, setSelectedDate] = useState("");
+  const [showCalendar, setShowCalendar] = useState(false);
+
+  const handleServicePress = () => {
+    setShowCalendar(true);
+  };
+
+  const handleDateSelect = async (day: any) => {
+    try {
+      const dateString = day.dateString;
+      setSelectedDate(dateString);
+      await AsyncStorage.setItem("scheduledDate", dateString);
+      Alert.alert("Scheduled", `Appointment set for ${dateString}`);
+    } catch (error) {
+      console.error("Error saving date:", error);
+      Alert.alert("Error", "Could not save the date.");
+    }
+  };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.sectionTitle}>
         {category ? `${category} Services` : "All Services"}
       </Text>
 
-      {/* Example placeholder service card */}
-      <TouchableOpacity style={styles.serviceCard}>
+      <TouchableOpacity style={styles.serviceCard} onPress={handleServicePress}>
         <Image
           source={
             category === "Grooming"
@@ -33,11 +61,34 @@ export default function ServicesScreen() {
         <Ionicons name="paw" size={30} color="#fff" style={styles.icon} />
       </TouchableOpacity>
 
-      {/* Go back button */}
+      {showCalendar && (
+        <>
+          <Text style={styles.calendarTitle}>📅 Schedule Your Appointment</Text>
+          <Calendar
+            onDayPress={handleDateSelect}
+            markedDates={{
+              [selectedDate]: {
+                selected: true,
+                marked: true,
+                selectedColor: "#3276A6",
+              },
+            }}
+            theme={{
+              todayTextColor: "#27AE60",
+              selectedDayBackgroundColor: "#3276A6",
+              arrowColor: "#3276A6",
+            }}
+          />
+          {selectedDate ? (
+            <Text style={styles.selectedDate}>Selected: {selectedDate}</Text>
+          ) : null}
+        </>
+      )}
+
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backText}>← Back</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -74,8 +125,22 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   icon: { position: "absolute", bottom: 10, right: 10 },
+  calendarTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginVertical: 15,
+    textAlign: "center",
+    color: "#222",
+  },
+  selectedDate: {
+    textAlign: "center",
+    fontSize: 16,
+    marginTop: 10,
+    fontWeight: "500",
+    color: "#333",
+  },
   backButton: {
-    marginTop: 20,
+    marginTop: 30,
     padding: 10,
     alignSelf: "center",
   },

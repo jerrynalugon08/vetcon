@@ -1,9 +1,18 @@
 import { auth } from "@/firebaseConfig";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { onAuthStateChanged, updateProfile } from "firebase/auth";
-import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
+import {
+  onAuthStateChanged,
+  updateProfile,
+} from "firebase/auth";
+import {
+  getDownloadURL,
+  getStorage,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -19,6 +28,7 @@ const HomeScreen: React.FC = () => {
   const router = useRouter();
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("User");
+  const [scheduledDate, setScheduledDate] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -27,6 +37,21 @@ const HomeScreen: React.FC = () => {
         setUserName(user.email || "User");
       }
     });
+
+    // Load the scheduled appointment date from AsyncStorage
+    const loadScheduledDate = async () => {
+      try {
+        const savedDate = await AsyncStorage.getItem("scheduledDate");
+        if (savedDate) {
+          setScheduledDate(savedDate);
+        }
+      } catch (error) {
+        console.error("Failed to load scheduled date:", error);
+      }
+    };
+
+    loadScheduledDate();
+
     return unsubscribe;
   }, []);
 
@@ -65,8 +90,6 @@ const HomeScreen: React.FC = () => {
       await uploadBytes(imageRef, blob);
 
       const downloadURL = await getDownloadURL(imageRef);
-
-      // Update Firebase Auth profile
       await updateProfile(user, { photoURL: downloadURL });
       setProfilePic(downloadURL);
       Alert.alert("Success", "Profile picture updated!");
@@ -105,6 +128,11 @@ const HomeScreen: React.FC = () => {
           placeholder="Enter Pet's Name..."
           placeholderTextColor="#555"
         />
+        {scheduledDate && (
+          <Text style={styles.scheduledDate}>
+            📅 Scheduled Appointment: {scheduledDate}
+          </Text>
+        )}
       </View>
 
       {/* Services Section */}
@@ -187,6 +215,12 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 5,
     marginTop: 5,
+  },
+  scheduledDate: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#3276A6",
+    fontWeight: "600",
   },
   sectionTitle: {
     fontSize: 20,
