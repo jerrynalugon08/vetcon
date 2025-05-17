@@ -30,6 +30,10 @@ const HomeScreen: React.FC = () => {
   const [userName, setUserName] = useState<string>("User");
   const [scheduledDate, setScheduledDate] = useState<string | null>(null);
 
+  // 🔹 New state for editing scheduled date
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [newScheduledDate, setNewScheduledDate] = useState<string>("");
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -38,7 +42,6 @@ const HomeScreen: React.FC = () => {
       }
     });
 
-    // Load the scheduled appointment date from AsyncStorage
     const loadScheduledDate = async () => {
       try {
         const savedDate = await AsyncStorage.getItem("scheduledDate");
@@ -105,12 +108,22 @@ const HomeScreen: React.FC = () => {
     });
   };
 
+  // 🔹 Function to save the updated schedule date
+  const handleUpdateDate = async () => {
+    try {
+      await AsyncStorage.setItem("scheduledDate", newScheduledDate);
+      setScheduledDate(newScheduledDate);
+      setIsEditing(false);
+      setNewScheduledDate("");
+    } catch (error) {
+      Alert.alert("Error", "Failed to save new date.");
+    }
+  };
+
   return (
     <View style={styles.container}>
-      {/* Header */}
       <Text style={styles.title}>VetConnect 🐾</Text>
 
-      {/* User Welcome Section */}
       <View style={styles.welcomeCard}>
         <TouchableOpacity onPress={pickImage}>
           <Image
@@ -128,14 +141,39 @@ const HomeScreen: React.FC = () => {
           placeholder="Enter Pet's Name..."
           placeholderTextColor="#555"
         />
-        {scheduledDate && (
-          <Text style={styles.scheduledDate}>
-            📅 Scheduled Appointment: {scheduledDate}
-          </Text>
+
+        {scheduledDate && !isEditing && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}>
+            <Text style={styles.scheduledDate}>
+              📅 Scheduled Appointment: {scheduledDate}
+            </Text>
+            <TouchableOpacity onPress={() => {
+              setIsEditing(true);
+              setNewScheduledDate(scheduledDate);
+            }}>
+              <Ionicons name="pencil" size={20} color="orange" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {isEditing && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 }}>
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              placeholder="Update appointment date..."
+              value={newScheduledDate}
+              onChangeText={setNewScheduledDate}
+            />
+            <TouchableOpacity onPress={handleUpdateDate}>
+              <Ionicons name="checkmark" size={24} color="green" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setIsEditing(false)}>
+              <Ionicons name="close" size={24} color="red" />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
-      {/* Services Section */}
       <Text style={styles.sectionTitle}>Services:</Text>
 
       <TouchableOpacity
@@ -217,7 +255,6 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   scheduledDate: {
-    marginTop: 10,
     fontSize: 16,
     color: "#3276A6",
     fontWeight: "600",
